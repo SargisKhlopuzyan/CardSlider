@@ -5,8 +5,8 @@ import android.view.View
 import androidx.annotation.NonNull
 import androidx.cardview.widget.CardView
 import androidx.core.view.ViewCompat
-import com.ramotion.cardslider.CardSliderLayoutManager
-import com.ramotion.cardslider.DefaultViewUpdater
+import com.sargis.khlopuzyan.cardslider.vertical.CardSliderLayoutManager
+import com.sargis.khlopuzyan.cardslider.vertical.DefaultViewUpdater
 import kotlin.math.max
 
 class CardsUpdater : DefaultViewUpdater() {
@@ -29,7 +29,7 @@ class CardsUpdater : DefaultViewUpdater() {
         }
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-            val lm: CardSliderLayoutManager = layoutManager
+            val lm: CardSliderLayoutManager = getLayoutManager()!!
             val ratio: Float = (lm.getDecoratedLeft(view) / lm.activeCardLeft).toFloat()
 
             val z: Float

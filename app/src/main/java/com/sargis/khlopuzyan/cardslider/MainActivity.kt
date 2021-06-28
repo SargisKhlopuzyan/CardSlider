@@ -20,10 +20,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import androidx.core.view.ViewCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.ramotion.cardslider.CardSliderLayoutManager
-import com.ramotion.cardslider.CardSnapHelper
 import com.sargis.khlopuzyan.cardslider.cards.SliderAdapter
 import com.sargis.khlopuzyan.cardslider.utils.DecodeBitmapTask
+import com.sargis.khlopuzyan.cardslider.vertical.CardSliderLayoutManager
+import com.sargis.khlopuzyan.cardslider.vertical.CardSnapHelper
 import java.util.*
 import kotlin.math.max
 
@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity() {
         "Mar 8 - May 21    7:00-18:00"
     )
 
-    private var sliderAdapter: SliderAdapter = SliderAdapter(pics, 20, OnCardClickListener())
+    private var sliderAdapter: SliderAdapter = SliderAdapter(pics, 120, OnCardClickListener())
 
     private lateinit var layoutManger: CardSliderLayoutManager
     private lateinit var recyclerView: RecyclerView
@@ -80,9 +80,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         initRecyclerView()
-        initCountryText()
-        initSwitchers()
-        initGreenDot()
+//        initCountryText()
+//        initSwitchers()
+//        initGreenDot()
     }
 
     private fun initRecyclerView() {
@@ -156,17 +156,13 @@ class MainActivity : AppCompatActivity() {
         country1TextView.text = countries[0]
         country2TextView.alpha = 0f
 
-        country1TextView.setTypeface(
-            Typeface.createFromAsset(
-                assets,
-                "open-sans-extrabold.ttf"
-            )
+        country1TextView.typeface = Typeface.createFromAsset(
+            assets,
+            "open-sans-extrabold.ttf"
         )
-        country2TextView.setTypeface(
-            Typeface.createFromAsset(
-                assets,
-                "open-sans-extrabold.ttf"
-            )
+        country2TextView.typeface = Typeface.createFromAsset(
+            assets,
+            "open-sans-extrabold.ttf"
         )
     }
 
@@ -222,17 +218,18 @@ class MainActivity : AppCompatActivity() {
 
         val iAlpha: ObjectAnimator = ObjectAnimator.ofFloat(invisibleText, "alpha", 1f)
         val vAlpha: ObjectAnimator = ObjectAnimator.ofFloat(visibleText, "alpha", 0f)
-        val iX: ObjectAnimator = ObjectAnimator.ofFloat(invisibleText, "x", countryOffset1.toFloat())
+        val iX: ObjectAnimator =
+            ObjectAnimator.ofFloat(invisibleText, "x", countryOffset1.toFloat())
         val vX: ObjectAnimator = ObjectAnimator.ofFloat(visibleText, "x", vOffset.toFloat())
 
-        val animSet: AnimatorSet = AnimatorSet()
+        val animSet = AnimatorSet()
         animSet.playTogether(iAlpha, vAlpha, iX, vX)
         animSet.duration = countryAnimDuration
         animSet.start()
     }
 
     private fun onActiveCardChange() {
-        val pos = layoutManger.activeCardPosition
+        val pos = layoutManger.getActiveCardPosition()
         if (pos == RecyclerView.NO_POSITION || pos == currentPosition) {
             return
         }
@@ -253,28 +250,28 @@ class MainActivity : AppCompatActivity() {
             animV[1] = R.anim.slide_out_top
         }
 
-        setCountryText(countries[pos % countries.size], left2right)
-
-        temperatureSwitcher.setInAnimation(this, animH[0])
-        temperatureSwitcher.setOutAnimation(this, animH[1])
-        temperatureSwitcher.setText(temperatures[pos % temperatures.size])
-
-        placeSwitcher.setInAnimation(this, animV[0])
-        placeSwitcher.setOutAnimation(this, animV[1])
-        placeSwitcher.setText(places[pos % places.size])
-
-        clockSwitcher.setInAnimation(this, animV[0])
-        clockSwitcher.setOutAnimation(this, animV[1])
-        clockSwitcher.setText(times[pos % times.size])
-
-        descriptionsSwitcher.setText(getString(descriptions[pos % descriptions.size]))
-
-        showMap(maps[pos % maps.size])
-
-        ViewCompat.animate(greenDot)
-            .translationX(dotCoords[pos % dotCoords.size][0].toFloat())
-            .translationY(dotCoords[pos % dotCoords.size][1].toFloat())
-            .start()
+//        setCountryText(countries[pos % countries.size], left2right)
+//
+//        temperatureSwitcher.setInAnimation(this, animH[0])
+//        temperatureSwitcher.setOutAnimation(this, animH[1])
+//        temperatureSwitcher.setText(temperatures[pos % temperatures.size])
+//
+//        placeSwitcher.setInAnimation(this, animV[0])
+//        placeSwitcher.setOutAnimation(this, animV[1])
+//        placeSwitcher.setText(places[pos % places.size])
+//
+//        clockSwitcher.setInAnimation(this, animV[0])
+//        clockSwitcher.setOutAnimation(this, animV[1])
+//        clockSwitcher.setText(times[pos % times.size])
+//
+//        descriptionsSwitcher.setText(getString(descriptions[pos % descriptions.size]))
+//
+//        showMap(maps[pos % maps.size])
+//
+//        ViewCompat.animate(greenDot)
+//            .translationX(dotCoords[pos % dotCoords.size][0].toFloat())
+//            .translationY(dotCoords[pos % dotCoords.size][1].toFloat())
+//            .start()
 
         currentPosition = pos
     }
@@ -335,7 +332,7 @@ class MainActivity : AppCompatActivity() {
                 return
             }
 
-            val activeCardPosition: Int = lm.activeCardPosition
+            val activeCardPosition: Int = lm.getActiveCardPosition()
             if (activeCardPosition == RecyclerView.NO_POSITION) {
                 return
             }
@@ -344,8 +341,10 @@ class MainActivity : AppCompatActivity() {
             if (clickedPosition == activeCardPosition) {
                 val intent = Intent(
                     this@MainActivity,
-                    DetailsActivity::class.java)
-                            intent.putExtra (DetailsActivity.BUNDLE_IMAGE_ID, pics[activeCardPosition % pics.size]
+                    DetailsActivity::class.java
+                )
+                intent.putExtra(
+                    DetailsActivity.BUNDLE_IMAGE_ID, pics[activeCardPosition % pics.size]
                 )
 
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
@@ -353,7 +352,11 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     val cardView: CardView = view as CardView
                     val sharedView: View = cardView.getChildAt(cardView.childCount - 1)
-                    val options: ActivityOptions = ActivityOptions.makeSceneTransitionAnimation(this@MainActivity, sharedView,"shared")
+                    val options: ActivityOptions = ActivityOptions.makeSceneTransitionAnimation(
+                        this@MainActivity,
+                        sharedView,
+                        "shared"
+                    )
                     startActivity(intent, options.toBundle())
                 }
             } else if (clickedPosition > activeCardPosition) {
