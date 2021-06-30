@@ -1,5 +1,6 @@
 package com.sargis.khlopuzyan.cardslider.cards
 
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,19 +19,19 @@ class SliderAdapter constructor(
             .from(parent.context)
             .inflate(R.layout.layout_slider_card, parent, false)
 
-        if (listener != null) {
-            view.setOnClickListener { view -> listener.onClick(view) }
-        }
+//        if (listener != null) {
+//            view.setOnClickListener { listener.onClick(it) }
+//        }
 
         return SliderCard(view)
     }
 
     override fun onBindViewHolder(holder: SliderCard, position: Int) {
-        holder.setContent(content[position % content.size])
+//        holder.setContent(content[position % content.size])
     }
 
     override fun onViewRecycled(holder: SliderCard) {
-        holder.clearContent()
+//        holder.clearContent()
     }
 
     override fun getItemCount(): Int {

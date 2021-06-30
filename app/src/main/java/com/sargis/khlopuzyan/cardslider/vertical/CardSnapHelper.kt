@@ -49,9 +49,9 @@ class CardSnapHelper : LinearSnapHelper() {
                 val distance = calculateScrollDistance(velocityX, velocityY)[0]
                 var deltaJump: Int
                 deltaJump = if (distance > 0) {
-                    floor((distance / lm.cardWidth).toDouble()).toInt()
+                    floor((distance / lm.cardHeight).toDouble()).toInt()
                 } else {
-                    ceil((distance / lm.cardWidth).toDouble()).toInt()
+                    ceil((distance / lm.cardHeight).toDouble()).toInt()
                 }
                 val deltaSign = Integer.signum(deltaJump)
                 deltaJump = deltaSign * min(3, abs(deltaJump))
@@ -86,15 +86,15 @@ class CardSnapHelper : LinearSnapHelper() {
     ): IntArray? {
         val lm = layoutManager as CardSliderLayoutManager
         val viewLeft = lm.getDecoratedLeft(targetView)
-        val activeCardLeft = lm.activeCardLeft
-        val activeCardCenter = lm.activeCardLeft + lm.cardWidth / 2
-        val activeCardRight = lm.activeCardLeft + lm.cardWidth
+        val activeCardLeft = lm.activeCardTop
+        val activeCardCenter = lm.activeCardTop + lm.cardHeight / 2
+        val activeCardRight = lm.activeCardTop + lm.cardHeight
         val out = intArrayOf(0, 0)
         if (viewLeft < activeCardCenter) {
             val targetPos = lm.getPosition(targetView)
             val activeCardPos = lm.getActiveCardPosition()
             if (targetPos != activeCardPos) {
-                out[0] = -(activeCardPos - targetPos) * lm.cardWidth
+                out[0] = -(activeCardPos - targetPos) * lm.cardHeight
             } else {
                 out[0] = viewLeft - activeCardLeft
             }

@@ -13,6 +13,7 @@ import android.util.SparseIntArray
 import android.view.View
 import androidx.annotation.Nullable
 import androidx.core.view.ViewCompat
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.Recycler
@@ -28,21 +29,22 @@ import kotlin.math.*
  *
  * @author Sargis Khlopuzyan (sargis.khlopuzyan@fastshift.com)
  */
-class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothScroller.ScrollVectorProvider {
+class CardSliderLayoutManager : LinearLayoutManager,
+    RecyclerView.SmoothScroller.ScrollVectorProvider {
 
     companion object {
-        private const val DEFAULT_ACTIVE_CARD_LEFT_OFFSET = 50
-        private const val DEFAULT_CARD_WIDTH = 148
+        private const val DEFAULT_ACTIVE_CARD_TOP_OFFSET = 50
+        private const val DEFAULT_CARD_HEIGHT = 148
         private const val DEFAULT_CARDS_GAP = 12
-        private const val LEFT_CARD_COUNT = 2
+        private const val TOP_CARD_COUNT = 2
     }
 
     private val viewCache: SparseArray<View> = SparseArray<View>()
-    private val cardsXCoords = SparseIntArray()
+    private val cardsYCoords = SparseIntArray()
 
-    var cardWidth = 0
-    var activeCardLeft = 0
-    var activeCardRight = 0
+    var cardHeight = 0
+    var activeCardTop = 0
+    var activeCardBottom = 0
     var activeCardCenter = 0
 
     var cardsGap = 0f
@@ -65,7 +67,7 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
          * Called on view update (scroll, layout).
          * @param view      Updating view
          * @param position  Position of card relative to the current active card position of the layout manager.
-         * 0 is active card. 1 is first right card, and -1 is first left (stacked) card.
+         * 0 is active card. 1 is first bottom card, and -1 is first top (stacked) card.
          */
         fun updateView(view: View, position: Float)
     }
@@ -102,7 +104,6 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
         }
     }
 
-
     /**
      * Creates CardSliderLayoutManager with default values
      *
@@ -114,35 +115,36 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
      * Constructor used when layout manager is set in XML by RecyclerView attribute
      * "layoutManager".
      *
-     * See [R.styleable.CardSlider_activeCardLeftOffset]
-     * See [R.styleable.CardSlider_cardWidth]
+     * See [R.styleable.CardSlider_activeCardTopOffset]
+     * See [R.styleable.CardSlider_cardHeight]
      * See [R.styleable.CardSlider_cardsGap]
      */
+
     constructor(
         context: Context,
         attrs: AttributeSet?,
         defStyleAttr: Int,
         defStyleRes: Int
-    ) {
+    ) : super(context, VERTICAL, false) {
         val density: Float = context.resources.displayMetrics.density
-        val defaultCardWidth = (DEFAULT_CARD_WIDTH * density).toInt()
-        val defaultActiveCardLeft = (DEFAULT_ACTIVE_CARD_LEFT_OFFSET * density).toInt()
+        val defaultCardHeight = (DEFAULT_CARD_HEIGHT * density).toInt()
+        val defaultActiveCardTop = (DEFAULT_ACTIVE_CARD_TOP_OFFSET * density).toInt()
         val defaultCardsGap = DEFAULT_CARDS_GAP * density
         if (attrs == null) {
-            initialize(defaultActiveCardLeft, defaultCardWidth, defaultCardsGap, null)
+            initialize(defaultActiveCardTop, defaultCardHeight, defaultCardsGap, null)
         } else {
-            val attrCardWidth: Int
-            val attrActiveCardLeft: Int
+            val attrCardHeight: Int
+            val attrActiveCardTop: Int
             val attrCardsGap: Float
             val viewUpdateClassName: String
             val a: TypedArray =
                 context.theme.obtainStyledAttributes(attrs, R.styleable.CardSlider, 0, 0)
             try {
-                attrCardWidth =
-                    a.getDimensionPixelSize(R.styleable.CardSlider_cardWidth, defaultCardWidth)
-                attrActiveCardLeft = a.getDimensionPixelSize(
-                    R.styleable.CardSlider_activeCardLeftOffset,
-                    defaultActiveCardLeft
+                attrCardHeight =
+                    a.getDimensionPixelSize(R.styleable.CardSlider_cardHeight, defaultCardHeight)
+                attrActiveCardTop = a.getDimensionPixelSize(
+                    R.styleable.CardSlider_activeCardTopOffset,
+                    defaultActiveCardTop
                 )
                 attrCardsGap = a.getDimension(R.styleable.CardSlider_cardsGap, defaultCardsGap)
                 viewUpdateClassName = a.getString(R.styleable.CardSlider_viewUpdater) ?: ""
@@ -150,26 +152,35 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
                 a.recycle()
             }
             val viewUpdater = loadViewUpdater(context, viewUpdateClassName, attrs)
-            initialize(attrActiveCardLeft, attrCardWidth, attrCardsGap, viewUpdater!!)
+            initialize(attrActiveCardTop, attrCardHeight, attrCardsGap, viewUpdater!!)
         }
     }
 
     /**
      * Creates CardSliderLayoutManager with specified values in pixels.
      *
-     * @param activeCardLeft    Active card offset from start of RecyclerView. Default value is 50dp.
-     * @param cardWidth         Card width. Default value is 148dp.
+     * @param activeCardTop    Active card offset from start of RecyclerView. Default value is 50dp.
+     * @param cardHeight         Card height. Default value is 148dp.
      * @param cardsGap          Distance between cards. Default value is 12dp.
      */
-    constructor(activeCardLeft: Int, cardWidth: Int, cardsGap: Float) {
-        initialize(activeCardLeft, cardWidth, cardsGap, null)
+    constructor(
+        context: Context, // TODO - Added By Me
+        activeCardTop: Int,
+        cardHeight: Int,
+        cardsGap: Float
+    ) : super(
+        context,
+        VERTICAL,
+        false
+    ) {
+        initialize(activeCardTop, cardHeight, cardsGap, null)
     }
 
-    private fun initialize(left: Int, width: Int, gap: Float, updater: ViewUpdater?) {
-        cardWidth = width
-        activeCardLeft = left
-        activeCardRight = activeCardLeft + cardWidth
-        activeCardCenter = activeCardLeft + (activeCardRight - activeCardLeft) / 2
+    private fun initialize(top: Int, height: Int, gap: Float, updater: ViewUpdater?) {
+        cardHeight = height
+        activeCardTop = top
+        activeCardBottom = activeCardTop + cardHeight
+        activeCardCenter = activeCardTop + (activeCardBottom - activeCardTop) / 2
         cardsGap = gap
         viewUpdater = updater
         if (viewUpdater == null) {
@@ -184,7 +195,6 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
             RecyclerView.LayoutParams.WRAP_CONTENT
         )
     }
-
 
     override fun onLayoutChildren(recycler: Recycler, state: RecyclerView.State) {
         if (itemCount == 0) {
@@ -209,22 +219,22 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
                 i++
             }
             if (removed.contains(anchorPos)) {
-                val first: Int = removed.getFirst()
-                val last: Int = removed.getLast()
-                val left = first - 1
-                val right =
+                val first: Int = removed.first
+                val last: Int = removed.last
+                val top = first - 1
+                val bottom =
                     if (last == itemCount + removed.size - 1) RecyclerView.NO_POSITION else last
-                anchorPos = Math.max(left, right)
+                anchorPos = max(top, bottom)
             }
             scrollRequestedPosition = anchorPos
         }
         detachAndScrapAttachedViews(recycler)
         fill(anchorPos, recycler, state)
-        if (cardsXCoords.size() != 0) {
+        if (cardsYCoords.size() != 0) {
             layoutByCoords()
         }
         if (state.isPreLayout) {
-            recyclerView!!.postOnAnimationDelayed({ updateViewScale() }, 415)
+            recyclerView?.postOnAnimationDelayed({ updateViewScale() }, 415)
         } else {
             updateViewScale()
         }
@@ -241,7 +251,7 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
         removeAllViews()
     }
 
-    override fun canScrollHorizontally(): Boolean {
+    override fun canScrollVertically(): Boolean {
         return childCount != 0
     }
 
@@ -253,29 +263,31 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
         requestLayout()
     }
 
-    override fun scrollHorizontallyBy(dx: Int, recycler: Recycler, state: RecyclerView.State): Int {
+    override fun scrollVerticallyBy(dy: Int, recycler: Recycler, state: RecyclerView.State): Int {
         scrollRequestedPosition = RecyclerView.NO_POSITION
         val delta: Int
-        if (dx < 0) {
-            delta = scrollRight(Math.max(dx, -cardWidth))
+        if (dy < 0) {
+            delta = scrollBottom(max(dy, -cardHeight))
         } else {
-            delta = scrollLeft(dx)
+            delta = scrollTop(dy)
         }
         fill(getActiveCardPosition(), recycler, state)
         updateViewScale()
-        cardsXCoords.clear()
+        cardsYCoords.clear()
         var i = 0
         val cnt = childCount
         while (i < cnt) {
             val view = getChildAt(i)
-            cardsXCoords.put(getPosition(view!!), getDecoratedLeft(view))
+            cardsYCoords.put(getPosition(view!!), getDecoratedTop(view))
             i++
         }
         return delta
     }
 
+    //TODO
     override fun computeScrollVectorForPosition(targetPosition: Int): PointF {
-        return PointF((targetPosition - getActiveCardPosition()).toFloat(), 0f)
+//        return PointF((targetPosition - getActiveCardPosition()).toFloat(), 0f)
+        return PointF(0f, (targetPosition - getActiveCardPosition()).toFloat())
     }
 
     override fun smoothScrollToPosition(
@@ -330,19 +342,19 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
         } else {
             var result = RecyclerView.NO_POSITION
             var biggestView: View? = null
-            var lastScaleX = 0f
+            var lastScaleY = 0f
             var i = 0
             val cnt = childCount
             while (i < cnt) {
                 val child = getChildAt(i)
-                val viewLeft = getDecoratedLeft(child!!)
-                if (viewLeft >= activeCardRight) {
+                val viewTop = getDecoratedTop(child!!)
+                if (viewTop >= activeCardBottom) {
                     i++
                     continue
                 }
-                val scaleX = ViewCompat.getScaleX(child)
-                if (lastScaleX < scaleX && viewLeft < activeCardCenter) {
-                    lastScaleX = scaleX
+                val scaleY = ViewCompat.getScaleY(child)
+                if (lastScaleY < scaleY && viewTop < activeCardCenter) {
+                    lastScaleY = scaleY
                     biggestView = child
                 }
                 i++
@@ -360,17 +372,17 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
             return null
         }
         var result: View? = null
-        var lastValue = cardWidth.toFloat()
+        var lastValue = cardHeight.toFloat()
         var i = 0
         val cnt = childCount
         while (i < cnt) {
             val child = getChildAt(i)
-            if (getDecoratedLeft(child!!) >= activeCardRight) {
+            if (getDecoratedTop(child!!) >= activeCardBottom) {
                 i++
                 continue
             }
-            val viewLeft = getDecoratedLeft(child)
-            val diff = activeCardRight - viewLeft
+            val viewTop = getDecoratedTop(child)
+            val diff = activeCardBottom - viewTop
             if (diff < lastValue) {
                 lastValue = diff.toFloat()
                 result = child
@@ -382,10 +394,12 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
 
     fun getSmoothScroller(recyclerView: RecyclerView): LinearSmoothScroller {
         return object : LinearSmoothScroller(recyclerView.context) {
-            override fun calculateDxToMakeVisible(view: View, snapPreference: Int): Int {
-                val viewStart = getDecoratedLeft(view)
-                if (viewStart > activeCardLeft) {
-                    return activeCardLeft - viewStart
+
+            override fun calculateDyToMakeVisible(view: View, snapPreference: Int): Int {
+//            override fun calculateDxToMakeVisible(view: View, snapPreference: Int): Int {
+                val viewTop2 = getDecoratedTop(view)
+                if (viewTop2 > activeCardTop) {
+                    return activeCardTop - viewTop2
                 } else {
                     var delta = 0
                     var topViewPos = 0
@@ -393,13 +407,13 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
                     if (topView != null) {
                         topViewPos = getPosition(topView)
                         if (topViewPos != targetPosition) {
-                            val topViewLeft = getDecoratedLeft(topView)
-                            if (topViewLeft >= activeCardLeft && topViewLeft < activeCardRight) {
-                                delta = activeCardRight - topViewLeft
+                            val topViewTop = getDecoratedTop(topView)
+                            if (topViewTop >= activeCardTop && topViewTop < activeCardBottom) {
+                                delta = activeCardBottom - topViewTop
                             }
                         }
                     }
-                    return delta + cardWidth * Math.max(0, topViewPos - targetPosition - 1)
+                    return delta + cardHeight * max(0, topViewPos - targetPosition - 1)
                 }
             }
 
@@ -437,71 +451,77 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
             updater = constructor.newInstance()
         } catch (e: NoSuchMethodException) {
             throw IllegalStateException(
-                attrs?.positionDescription.toString() + ": Error creating LayoutManager " + className, e
+                attrs?.positionDescription.toString() + ": Error creating LayoutManager " + className,
+                e
             )
         } catch (e: ClassNotFoundException) {
             throw IllegalStateException(
-                (attrs?.positionDescription.toString() + ": Unable to find ViewUpdater" + className), e
+                (attrs?.positionDescription.toString() + ": Unable to find ViewUpdater" + className),
+                e
             )
         } catch (e: InvocationTargetException) {
             throw IllegalStateException(
-                (attrs?.positionDescription.toString() + ": Could not instantiate the ViewUpdater: " + className), e
+                (attrs?.positionDescription.toString() + ": Could not instantiate the ViewUpdater: " + className),
+                e
             )
         } catch (e: InstantiationException) {
             throw IllegalStateException(
-                (attrs?.positionDescription.toString() + ": Could not instantiate the ViewUpdater: " + className), e
+                (attrs?.positionDescription.toString() + ": Could not instantiate the ViewUpdater: " + className),
+                e
             )
         } catch (e: IllegalAccessException) {
             throw IllegalStateException(
-                (attrs?.positionDescription.toString() + ": Cannot access non-public constructor " + className), e
+                (attrs?.positionDescription.toString() + ": Cannot access non-public constructor " + className),
+                e
             )
         } catch (e: ClassCastException) {
             throw IllegalStateException(
-                (attrs?.positionDescription.toString() + ": Class is not a ViewUpdater " + className), e
+                (attrs?.positionDescription.toString() + ": Class is not a ViewUpdater " + className),
+                e
             )
         }
         return updater
     }
 
-    private fun scrollRight(dx: Int): Int {
+    private fun scrollBottom(dy: Int): Int {
         val childCount = childCount
         if (childCount == 0) {
             return 0
         }
-        val rightestView = getChildAt(childCount - 1)
-        val deltaBorder = activeCardLeft + getPosition((rightestView)!!) * cardWidth
-        val delta = getAllowedRightDelta((rightestView), dx, deltaBorder)
-        val rightViews: LinkedList<View> = LinkedList()
-        val leftViews: LinkedList<View> = LinkedList()
+        val bottomestView = getChildAt(childCount - 1)
+        val deltaBorder = activeCardTop + getPosition((bottomestView)!!) * cardHeight
+        val delta = getAllowedBottomDelta((bottomestView), dy, deltaBorder)
+        val bottomViews: LinkedList<View> = LinkedList()
+        val topViews: LinkedList<View> = LinkedList()
         for (i in childCount - 1 downTo 0) {
             val view = getChildAt(i)
-            val viewLeft = getDecoratedLeft((view)!!)
-            if (viewLeft >= activeCardRight) {
-                rightViews.add(view)
+            val viewTop = getDecoratedTop((view)!!)
+            if (viewTop >= activeCardBottom) {
+                bottomViews.add(view)
             } else {
-                leftViews.add(view)
+                topViews.add(view)
             }
         }
-        for (view: View in rightViews) {
-            val border = activeCardLeft + getPosition(view) * cardWidth
-            val allowedDelta = getAllowedRightDelta(view, dx, border)
-            view.offsetLeftAndRight(-allowedDelta)
+        for (view: View in bottomViews) {
+            val border = activeCardTop + getPosition(view) * cardHeight
+            val allowedDelta = getAllowedBottomDelta(view, dy, border)
+            view.offsetTopAndBottom(-allowedDelta)
         }
-        val step = activeCardLeft / LEFT_CARD_COUNT
-        val jDelta = floor((1f * delta * step / cardWidth).toDouble()).toInt()
+        val step = activeCardTop / TOP_CARD_COUNT
+        val jDelta = floor((1f * delta * step / cardHeight).toDouble()).toInt()
         var prevView: View? = null
         var j = 0
         var i = 0
-        val cnt: Int = leftViews.size
+        val cnt: Int = topViews.size
         while (i < cnt) {
-            val view: View = leftViews[i]
-            if (prevView == null || getDecoratedLeft(prevView) >= activeCardRight) {
-                val border = activeCardLeft + getPosition(view) * cardWidth
-                val allowedDelta = getAllowedRightDelta(view, dx, border)
-                view.offsetLeftAndRight(-allowedDelta)
+            val view: View = topViews[i]
+            if (prevView == null || getDecoratedTop(prevView) >= activeCardBottom) {
+                val border = activeCardTop + getPosition(view) * cardHeight
+                val allowedDelta = getAllowedBottomDelta(view, dy, border)
+                view.offsetTopAndBottom(-allowedDelta)
             } else {
-                val border = activeCardLeft - step * j
-                view.offsetLeftAndRight(-getAllowedRightDelta(view, jDelta, border))
+                val border = activeCardTop - step * j
+                view.offsetTopAndBottom(-getAllowedBottomDelta(view, jDelta, border))
                 j++
             }
             prevView = view
@@ -510,7 +530,7 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
         return delta
     }
 
-    private fun scrollLeft(dx: Int): Int {
+    private fun scrollTop(dy: Int): Int {
         val childCount = childCount
         if (childCount == 0) {
             return 0
@@ -519,22 +539,22 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
         val isLastItem = getPosition((lastView)!!) == itemCount - 1
         val delta: Int
         if (isLastItem) {
-            delta = Math.min(dx, getDecoratedRight((lastView)) - activeCardRight)
+            delta = min(dy, getDecoratedBottom((lastView)) - activeCardBottom)
         } else {
-            delta = dx
+            delta = dy
         }
-        val step = activeCardLeft / LEFT_CARD_COUNT
-        val jDelta = ceil((1f * delta * step / cardWidth).toDouble()).toInt()
+        val step = activeCardTop / TOP_CARD_COUNT
+        val jDelta = ceil((1f * delta * step / cardHeight).toDouble()).toInt()
         for (i in childCount - 1 downTo 0) {
             val view = getChildAt(i)
-            val viewLeft = getDecoratedLeft((view)!!)
-            if (viewLeft > activeCardLeft) {
-                view.offsetLeftAndRight(getAllowedLeftDelta((view), delta, activeCardLeft))
+            val viewTop = getDecoratedTop((view)!!)
+            if (viewTop > activeCardTop) {
+                view.offsetTopAndBottom(getAllowedTopDelta((view), delta, activeCardTop))
             } else {
-                var border = activeCardLeft - step
+                var border = activeCardTop - step
                 for (j in i downTo 0) {
                     val jView = getChildAt(j)
-                    jView!!.offsetLeftAndRight(getAllowedLeftDelta((jView), jDelta, border))
+                    jView!!.offsetTopAndBottom(getAllowedTopDelta((jView), jDelta, border))
                     border -= step
                 }
                 break
@@ -543,38 +563,38 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
         return delta
     }
 
-    private fun getAllowedLeftDelta(view: View, dx: Int, border: Int): Int {
-        val viewLeft = getDecoratedLeft(view)
-        return if (viewLeft - dx > border) {
-            -dx
+    private fun getAllowedTopDelta(view: View, dy: Int, border: Int): Int {
+        val viewTop = getDecoratedTop(view)
+        return if (viewTop - dy > border) {
+            -dy
         } else {
-            border - viewLeft
+            border - viewTop
         }
     }
 
-    private fun getAllowedRightDelta(view: View, dx: Int, border: Int): Int {
-        val viewLeft = getDecoratedLeft(view)
-        return if (viewLeft + abs(dx) < border) {
-            dx
+    private fun getAllowedBottomDelta(view: View, dy: Int, border: Int): Int {
+        val viewTop = getDecoratedTop(view)
+        return if (viewTop + abs(dy) < border) {
+            dy
         } else {
-            viewLeft - border
+            viewTop - border
         }
     }
 
     private fun layoutByCoords() {
-        val count = min(childCount, cardsXCoords.size())
+        val count = min(childCount, cardsYCoords.size())
         for (i in 0 until count) {
             val view = getChildAt(i)
-            val viewLeft = cardsXCoords[getPosition((view)!!)]
+            val viewTop = cardsYCoords[getPosition((view)!!)]
             layoutDecorated(
-                (view),
-                viewLeft,
+                view,
                 0,
-                viewLeft + cardWidth,
-                getDecoratedBottom((view))
+                viewTop,
+                getDecoratedRight((view)), // TODO - OK
+                viewTop + cardHeight
             )
         }
-        cardsXCoords.clear()
+        cardsYCoords.clear()
     }
 
     private fun fill(anchorPos: Int, recycler: Recycler, state: RecyclerView.State) {
@@ -598,8 +618,8 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
             }
         }
         if (!state.isPreLayout) {
-            fillLeft(anchorPos, recycler)
-            fillRight(anchorPos, recycler)
+            fillTop(anchorPos, recycler)
+            fillBottom(anchorPos, recycler)
         }
         var i = 0
         val cnt = viewCache.size()
@@ -609,13 +629,13 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
         }
     }
 
-    private fun fillLeft(anchorPos: Int, recycler: Recycler) {
+    private fun fillTop(anchorPos: Int, recycler: Recycler) {
         if (anchorPos == RecyclerView.NO_POSITION) {
             return
         }
-        val layoutStep = activeCardLeft / LEFT_CARD_COUNT
-        var pos = max(0, anchorPos - LEFT_CARD_COUNT - 1)
-        var viewLeft = max(-1, LEFT_CARD_COUNT - (anchorPos - pos)) * layoutStep
+        val layoutStep = activeCardTop / TOP_CARD_COUNT
+        var pos = max(0, anchorPos - TOP_CARD_COUNT - 1)
+        var viewTop = max(-1, TOP_CARD_COUNT - (anchorPos - pos)) * layoutStep
         while (pos < anchorPos) {
             var view = viewCache[pos]
             if (view != null) {
@@ -625,24 +645,25 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
                 view = recycler.getViewForPosition(pos)
                 addView(view)
                 measureChildWithMargins(view, 0, 0)
-                val viewHeight = getDecoratedMeasuredHeight(view)
-                layoutDecorated(view, viewLeft, 0, viewLeft + cardWidth, viewHeight)
+                val viewWidth2 = getDecoratedMeasuredWidth(view) // TODO - OK
+                //TODO
+                layoutDecorated(view, 0, viewTop, viewWidth2, viewTop + cardHeight)
             }
-            viewLeft += layoutStep
+            viewTop += layoutStep
             pos++
         }
     }
 
-    private fun fillRight(anchorPos: Int, recycler: Recycler) {
+    private fun fillBottom(anchorPos: Int, recycler: Recycler) {
         if (anchorPos == RecyclerView.NO_POSITION) {
             return
         }
-        val width = width
+        val height = height
         val itemCount = itemCount
         var pos = anchorPos
-        var viewLeft = activeCardLeft
-        var fillRight = true
-        while (fillRight && pos < itemCount) {
+        var viewTop = activeCardTop
+        var fillBottom = true
+        while (fillBottom && pos < itemCount) {
             var view = viewCache[pos]
             if (view != null) {
                 attachView(view)
@@ -651,11 +672,11 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
                 view = recycler.getViewForPosition(pos)
                 addView(view)
                 measureChildWithMargins(view, 0, 0)
-                val viewHeight = getDecoratedMeasuredHeight(view)
-                layoutDecorated(view, viewLeft, 0, viewLeft + cardWidth, viewHeight)
+                val viewWidth2 = getDecoratedMeasuredWidth(view) // TODO - OK
+                layoutDecorated(view, 0, viewTop, viewWidth2, viewTop + cardHeight)
             }
-            viewLeft = getDecoratedRight(view)
-            fillRight = viewLeft < width + cardWidth
+            viewTop = getDecoratedBottom(view)
+            fillBottom = viewTop < height + cardHeight
             pos++
         }
     }
@@ -665,8 +686,8 @@ class CardSliderLayoutManager : RecyclerView.LayoutManager, RecyclerView.SmoothS
         val cnt = childCount
         while (i < cnt) {
             val view = getChildAt(i)
-            val viewLeft = getDecoratedLeft((view)!!)
-            val position = ((viewLeft - activeCardLeft).toFloat() / cardWidth)
+            val viewTop = getDecoratedTop(view!!)
+            val position = ((viewTop - activeCardTop).toFloat() / cardHeight)
             viewUpdater!!.updateView((view), position)
             i++
         }

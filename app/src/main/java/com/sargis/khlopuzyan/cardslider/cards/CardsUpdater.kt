@@ -30,7 +30,7 @@ class CardsUpdater : DefaultViewUpdater() {
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             val lm: CardSliderLayoutManager = getLayoutManager()!!
-            val ratio: Float = (lm.getDecoratedLeft(view) / lm.activeCardLeft).toFloat()
+            val ratio: Float = (lm.getDecoratedTop(view) / lm.activeCardTop).toFloat()
 
             val z: Float
             if (position < 0) {
@@ -40,7 +40,7 @@ class CardsUpdater : DefaultViewUpdater() {
             } else if (position < 1f) {
                 z = Z_CENTER_2.toFloat()
             } else {
-                z = Z_RIGHT.toFloat()
+                z = Z_BOTTOM.toFloat()
             }
 
             card.cardElevation = max(0f, z)

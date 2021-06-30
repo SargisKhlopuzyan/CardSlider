@@ -11,8 +11,9 @@ import com.sargis.khlopuzyan.cardslider.utils.DecodeBitmapTask
 
 class SliderCard constructor(
     itemView: View
-) : RecyclerView.ViewHolder(itemView), DecodeBitmapTask.Listener {
+) : RecyclerView.ViewHolder(itemView)/*, DecodeBitmapTask.Listener*/ {
 
+    /**
     companion object {
         private var viewWidth = 0
         private var viewHeight = 0
@@ -23,6 +24,8 @@ class SliderCard constructor(
     private lateinit var task: DecodeBitmapTask
 
     fun setContent(@DrawableRes resId: Int) {
+        imageView.setImageResource(resId)
+
         if (viewWidth == 0) {
             itemView.viewTreeObserver
                 .addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
@@ -51,5 +54,6 @@ class SliderCard constructor(
     override fun onPostExecuted(bitmap: Bitmap) {
         imageView.setImageBitmap(bitmap)
     }
+    */
 
 }
