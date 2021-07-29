@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.Recycler
 import com.sargis.khlopuzyan.cardslider.R
+import com.sargis.khlopuzyan.cardslider.custom.CreditCardView
 import java.lang.reflect.Constructor
 import java.lang.reflect.InvocationTargetException
 import java.util.*
@@ -33,13 +34,13 @@ class CardSliderLayoutManager : LinearLayoutManager,
     RecyclerView.SmoothScroller.ScrollVectorProvider {
 
     companion object {
-        private const val DEFAULT_ACTIVE_CARD_TOP_OFFSET = 50
+        private const val DEFAULT_ACTIVE_CARD_TOP_OFFSET = 148 //150
         private const val DEFAULT_CARD_HEIGHT = 148
         private const val DEFAULT_CARDS_GAP = 12
         private const val TOP_CARD_COUNT = 2
     }
 
-    private val viewCache: SparseArray<View> = SparseArray<View>()
+    private val viewCache: SparseArray<CreditCardView> = SparseArray<CreditCardView>()
     private val cardsYCoords = SparseIntArray()
 
     var cardHeight = 0
@@ -69,7 +70,8 @@ class CardSliderLayoutManager : LinearLayoutManager,
          * @param position  Position of card relative to the current active card position of the layout manager.
          * 0 is active card. 1 is first bottom card, and -1 is first top (stacked) card.
          */
-        fun updateView(view: View, position: Float)
+//        fun updateView(view: View, position: Float)
+        fun updateView(view: CreditCardView, position: Float)
     }
 
     class SavedState : Parcelable {
@@ -197,14 +199,18 @@ class CardSliderLayoutManager : LinearLayoutManager,
     }
 
     override fun onLayoutChildren(recycler: Recycler, state: RecyclerView.State) {
+
         if (itemCount == 0) {
             removeAndRecycleAllViews(recycler)
             return
         }
+
         if (childCount == 0 && state.isPreLayout) {
             return
         }
+
         var anchorPos = getActiveCardPosition()
+
         if (state.isPreLayout) {
             val removed: LinkedList<Int> = LinkedList()
             var i = 0
@@ -218,6 +224,7 @@ class CardSliderLayoutManager : LinearLayoutManager,
                 }
                 i++
             }
+
             if (removed.contains(anchorPos)) {
                 val first: Int = removed.first
                 val last: Int = removed.last
@@ -226,13 +233,17 @@ class CardSliderLayoutManager : LinearLayoutManager,
                     if (last == itemCount + removed.size - 1) RecyclerView.NO_POSITION else last
                 anchorPos = max(top, bottom)
             }
+
             scrollRequestedPosition = anchorPos
         }
+
         detachAndScrapAttachedViews(recycler)
         fill(anchorPos, recycler, state)
+
         if (cardsYCoords.size() != 0) {
             layoutByCoords()
         }
+
         if (state.isPreLayout) {
             recyclerView?.postOnAnimationDelayed({ updateViewScale() }, 415)
         } else {
@@ -265,12 +276,13 @@ class CardSliderLayoutManager : LinearLayoutManager,
 
     override fun scrollVerticallyBy(dy: Int, recycler: Recycler, state: RecyclerView.State): Int {
         scrollRequestedPosition = RecyclerView.NO_POSITION
-        val delta: Int
-        if (dy < 0) {
-            delta = scrollBottom(max(dy, -cardHeight))
+
+        val delta: Int = if (dy < 0) {
+            scrollBottom(max(dy, -cardHeight))
         } else {
-            delta = scrollTop(dy)
+            scrollTop(dy)
         }
+
         fill(getActiveCardPosition(), recycler, state)
         updateViewScale()
         cardsYCoords.clear()
@@ -311,7 +323,7 @@ class CardSliderLayoutManager : LinearLayoutManager,
     }
 
     override fun onSaveInstanceState(): Parcelable {
-        val state: SavedState = SavedState()
+        val state = SavedState()
         state.anchorPos = getActiveCardPosition()
         return state
     }
@@ -341,12 +353,13 @@ class CardSliderLayoutManager : LinearLayoutManager,
             return scrollRequestedPosition
         } else {
             var result = RecyclerView.NO_POSITION
-            var biggestView: View? = null
+//            var biggestView: View? = null
+            var biggestView: CreditCardView? = null
             var lastScaleY = 0f
             var i = 0
             val cnt = childCount
             while (i < cnt) {
-                val child = getChildAt(i)
+                val child = getChildAt(i) as? CreditCardView
                 val viewTop = getDecoratedTop(child!!)
                 if (viewTop >= activeCardBottom) {
                     i++
@@ -367,16 +380,16 @@ class CardSliderLayoutManager : LinearLayoutManager,
     }
 
     @Nullable
-    fun getTopView(): View? {
+    fun getTopView(): CreditCardView? {
         if (childCount == 0) {
             return null
         }
-        var result: View? = null
+        var result: CreditCardView? = null
         var lastValue = cardHeight.toFloat()
         var i = 0
         val cnt = childCount
         while (i < cnt) {
-            val child = getChildAt(i)
+            val child = getChildAt(i) as? CreditCardView
             if (getDecoratedTop(child!!) >= activeCardBottom) {
                 i++
                 continue
@@ -408,7 +421,7 @@ class CardSliderLayoutManager : LinearLayoutManager,
                         topViewPos = getPosition(topView)
                         if (topViewPos != targetPosition) {
                             val topViewTop = getDecoratedTop(topView)
-                            if (topViewTop >= activeCardTop && topViewTop < activeCardBottom) {
+                            if (topViewTop in activeCardTop until activeCardBottom) {
                                 delta = activeCardBottom - topViewTop
                             }
                         }
@@ -488,33 +501,33 @@ class CardSliderLayoutManager : LinearLayoutManager,
         if (childCount == 0) {
             return 0
         }
-        val bottomestView = getChildAt(childCount - 1)
-        val deltaBorder = activeCardTop + getPosition((bottomestView)!!) * cardHeight
-        val delta = getAllowedBottomDelta((bottomestView), dy, deltaBorder)
-        val bottomViews: LinkedList<View> = LinkedList()
-        val topViews: LinkedList<View> = LinkedList()
+        val bottomestView = getChildAt(childCount - 1) as? CreditCardView
+        val deltaBorder = activeCardTop + getPosition(bottomestView!!) * cardHeight
+        val delta = getAllowedBottomDelta(bottomestView, dy, deltaBorder)
+        val bottomViews: LinkedList<CreditCardView> = LinkedList()
+        val topViews: LinkedList<CreditCardView> = LinkedList()
         for (i in childCount - 1 downTo 0) {
-            val view = getChildAt(i)
-            val viewTop = getDecoratedTop((view)!!)
+            val view = getChildAt(i) as? CreditCardView
+            val viewTop = getDecoratedTop(view!!)
             if (viewTop >= activeCardBottom) {
                 bottomViews.add(view)
             } else {
                 topViews.add(view)
             }
         }
-        for (view: View in bottomViews) {
+        for (view: CreditCardView in bottomViews) {
             val border = activeCardTop + getPosition(view) * cardHeight
             val allowedDelta = getAllowedBottomDelta(view, dy, border)
             view.offsetTopAndBottom(-allowedDelta)
         }
         val step = activeCardTop / TOP_CARD_COUNT
         val jDelta = floor((1f * delta * step / cardHeight).toDouble()).toInt()
-        var prevView: View? = null
+        var prevView: CreditCardView? = null
         var j = 0
         var i = 0
         val cnt: Int = topViews.size
         while (i < cnt) {
-            val view: View = topViews[i]
+            val view: CreditCardView = topViews[i]
             if (prevView == null || getDecoratedTop(prevView) >= activeCardBottom) {
                 val border = activeCardTop + getPosition(view) * cardHeight
                 val allowedDelta = getAllowedBottomDelta(view, dy, border)
@@ -536,25 +549,25 @@ class CardSliderLayoutManager : LinearLayoutManager,
             return 0
         }
         val lastView = getChildAt(childCount - 1)
-        val isLastItem = getPosition((lastView)!!) == itemCount - 1
+        val isLastItem = getPosition(lastView!!) == itemCount - 1
         val delta: Int
         if (isLastItem) {
-            delta = min(dy, getDecoratedBottom((lastView)) - activeCardBottom)
+            delta = min(dy, getDecoratedBottom(lastView) - activeCardBottom)
         } else {
             delta = dy
         }
         val step = activeCardTop / TOP_CARD_COUNT
         val jDelta = ceil((1f * delta * step / cardHeight).toDouble()).toInt()
         for (i in childCount - 1 downTo 0) {
-            val view = getChildAt(i)
-            val viewTop = getDecoratedTop((view)!!)
+            val view = getChildAt(i) as? CreditCardView
+            val viewTop = getDecoratedTop(view!!)
             if (viewTop > activeCardTop) {
-                view.offsetTopAndBottom(getAllowedTopDelta((view), delta, activeCardTop))
+                view.offsetTopAndBottom(getAllowedTopDelta(view, delta, activeCardTop))
             } else {
                 var border = activeCardTop - step
                 for (j in i downTo 0) {
-                    val jView = getChildAt(j)
-                    jView!!.offsetTopAndBottom(getAllowedTopDelta((jView), jDelta, border))
+                    val jView = getChildAt(j) as? CreditCardView
+                    jView!!.offsetTopAndBottom(getAllowedTopDelta(jView, jDelta, border))
                     border -= step
                 }
                 break
@@ -563,7 +576,7 @@ class CardSliderLayoutManager : LinearLayoutManager,
         return delta
     }
 
-    private fun getAllowedTopDelta(view: View, dy: Int, border: Int): Int {
+    private fun getAllowedTopDelta(view: CreditCardView, dy: Int, border: Int): Int {
         val viewTop = getDecoratedTop(view)
         return if (viewTop - dy > border) {
             -dy
@@ -572,7 +585,7 @@ class CardSliderLayoutManager : LinearLayoutManager,
         }
     }
 
-    private fun getAllowedBottomDelta(view: View, dy: Int, border: Int): Int {
+    private fun getAllowedBottomDelta(view: CreditCardView, dy: Int, border: Int): Int {
         val viewTop = getDecoratedTop(view)
         return if (viewTop + abs(dy) < border) {
             dy
@@ -585,12 +598,12 @@ class CardSliderLayoutManager : LinearLayoutManager,
         val count = min(childCount, cardsYCoords.size())
         for (i in 0 until count) {
             val view = getChildAt(i)
-            val viewTop = cardsYCoords[getPosition((view)!!)]
+            val viewTop = cardsYCoords[getPosition(view!!)]
             layoutDecorated(
                 view,
                 0,
                 viewTop,
-                getDecoratedRight((view)), // TODO - OK
+                getDecoratedRight(view), // TODO - OK
                 viewTop + cardHeight
             )
         }
@@ -603,8 +616,8 @@ class CardSliderLayoutManager : LinearLayoutManager,
             var i: Int = 0
             val cnt: Int = childCount
             while (i < cnt) {
-                val view: View? = getChildAt(i)
-                val pos: Int = getPosition((view)!!)
+                val view: CreditCardView? = getChildAt(i) as? CreditCardView
+                val pos: Int = getPosition(view!!)
                 viewCache.put(pos, view)
                 i++
             }
@@ -642,7 +655,7 @@ class CardSliderLayoutManager : LinearLayoutManager,
                 attachView(view)
                 viewCache.remove(pos)
             } else {
-                view = recycler.getViewForPosition(pos)
+                view = recycler.getViewForPosition(pos) as? CreditCardView
                 addView(view)
                 measureChildWithMargins(view, 0, 0)
                 val viewWidth2 = getDecoratedMeasuredWidth(view) // TODO - OK
@@ -669,7 +682,7 @@ class CardSliderLayoutManager : LinearLayoutManager,
                 attachView(view)
                 viewCache.remove(pos)
             } else {
-                view = recycler.getViewForPosition(pos)
+                view = recycler.getViewForPosition(pos) as? CreditCardView
                 addView(view)
                 measureChildWithMargins(view, 0, 0)
                 val viewWidth2 = getDecoratedMeasuredWidth(view) // TODO - OK
@@ -685,10 +698,10 @@ class CardSliderLayoutManager : LinearLayoutManager,
         var i = 0
         val cnt = childCount
         while (i < cnt) {
-            val view = getChildAt(i)
+            val view = getChildAt(i) as? CreditCardView
             val viewTop = getDecoratedTop(view!!)
             val position = ((viewTop - activeCardTop).toFloat() / cardHeight)
-            viewUpdater!!.updateView((view), position)
+            viewUpdater!!.updateView(view, position)
             i++
         }
     }

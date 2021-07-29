@@ -1,13 +1,7 @@
 package com.sargis.khlopuzyan.cardslider.cards
 
-import android.graphics.Bitmap
 import android.view.View
-import android.view.ViewTreeObserver
-import android.widget.ImageView
-import androidx.annotation.DrawableRes
 import androidx.recyclerview.widget.RecyclerView
-import com.sargis.khlopuzyan.cardslider.R
-import com.sargis.khlopuzyan.cardslider.utils.DecodeBitmapTask
 
 class SliderCard constructor(
     itemView: View

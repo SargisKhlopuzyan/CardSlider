@@ -6,17 +6,15 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.sargis.khlopuzyan.cardslider.cards.SliderAdapter
 import com.sargis.khlopuzyan.cardslider.vertical.CardSliderLayoutManager
+import com.sargis.khlopuzyan.cardslider.vertical.CardSnapHelper
 
 class MainActivity : AppCompatActivity() {
-
-    //    private val dotCoords: Array<Array<Int>> = Array(2,0) // int[5][2]
-    private val dotCoords = Array(2) { IntArray(5) }
 
     private val pics: IntArray =
         intArrayOf(R.drawable.p1, R.drawable.p2, R.drawable.p3, R.drawable.p4, R.drawable.p5)
 
     private var sliderAdapter: SliderAdapter =
-        SliderAdapter(pics, 120, null /*OnCardClickListener()*/)
+        SliderAdapter(pics, 20, null /*OnCardClickListener()*/)
 
     private lateinit var layoutManger: CardSliderLayoutManager
     private lateinit var recyclerView: RecyclerView
@@ -43,6 +41,6 @@ class MainActivity : AppCompatActivity() {
         layoutManger = recyclerView.layoutManager as CardSliderLayoutManager
 
         // TODO
-//        CardSnapHelper().attachToRecyclerView(recyclerView)
+        CardSnapHelper().attachToRecyclerView(recyclerView)
     }
 }

@@ -1,5 +1,6 @@
 package com.sargis.khlopuzyan.cardslider.vertical
 
+import android.util.Log
 import android.view.View
 import android.view.animation.AccelerateInterpolator
 import androidx.recyclerview.widget.LinearSmoothScroller
@@ -46,7 +47,8 @@ class CardSnapHelper : LinearSnapHelper() {
             if (vectorForEnd == null) {
                 -1
             } else {
-                val distance = calculateScrollDistance(velocityX, velocityY)[0]
+                val distance = calculateScrollDistance(velocityX, velocityY)[1] // 0
+//                Log.e("LOG_TAG", "distance : $distance")
                 var deltaJump: Int
                 deltaJump = if (distance > 0) {
                     floor((distance / lm.cardHeight).toDouble()).toInt()
@@ -55,20 +57,24 @@ class CardSnapHelper : LinearSnapHelper() {
                 }
                 val deltaSign = Integer.signum(deltaJump)
                 deltaJump = deltaSign * min(3, abs(deltaJump))
-                if (vectorForEnd.x < 0.0f) {
+                Log.e("LOG_TAG", "deltaJump : $deltaJump")
+
+                if (vectorForEnd.y < 0.0f) {
                     deltaJump = -deltaJump
                 }
                 if (deltaJump == 0) {
-                    -1
+//                    Log.e("LOG_TAG", "-1 : -1")
+                    RecyclerView.NO_POSITION
                 } else {
                     val currentPosition = lm.getActiveCardPosition()
-                    if (currentPosition == -1) {
-                        -1
+                    if (currentPosition == RecyclerView.NO_POSITION) {
+                        RecyclerView.NO_POSITION
                     } else {
                         var targetPos = currentPosition + deltaJump
                         if (targetPos < 0 || targetPos >= itemCount) {
-                            targetPos = -1
+                            targetPos = RecyclerView.NO_POSITION
                         }
+//                        Log.e("LOG_TAG", "targetPos : $targetPos")
                         targetPos
                     }
                 }
@@ -83,27 +89,29 @@ class CardSnapHelper : LinearSnapHelper() {
     override fun calculateDistanceToFinalSnap(
         layoutManager: RecyclerView.LayoutManager,
         targetView: View
-    ): IntArray? {
+    ): IntArray {
         val lm = layoutManager as CardSliderLayoutManager
-        val viewLeft = lm.getDecoratedLeft(targetView)
-        val activeCardLeft = lm.activeCardTop
+        val viewTop = lm.getDecoratedTop(targetView)
+        val activeCardTop = lm.activeCardTop
         val activeCardCenter = lm.activeCardTop + lm.cardHeight / 2
-        val activeCardRight = lm.activeCardTop + lm.cardHeight
+        val activeCardBottom = lm.activeCardTop + lm.cardHeight
         val out = intArrayOf(0, 0)
-        if (viewLeft < activeCardCenter) {
+        if (viewTop < activeCardCenter) {
             val targetPos = lm.getPosition(targetView)
             val activeCardPos = lm.getActiveCardPosition()
             if (targetPos != activeCardPos) {
-                out[0] = -(activeCardPos - targetPos) * lm.cardHeight
+                out[1] = -(activeCardPos - targetPos) * lm.cardHeight
             } else {
-                out[0] = viewLeft - activeCardLeft
+                out[1] = viewTop - activeCardTop
             }
         } else {
-            out[0] = viewLeft - activeCardRight + 1
+            out[1] = viewTop - activeCardBottom + 1
         }
-        if (out[0] != 0) {
-            recyclerView!!.smoothScrollBy(out[0], 0, AccelerateInterpolator())
+
+        if (out[1] != 0) {
+            recyclerView?.smoothScrollBy(0, out[1], AccelerateInterpolator())
         }
+
         return intArrayOf(0, 0)
     }
 
